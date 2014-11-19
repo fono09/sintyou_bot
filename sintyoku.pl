@@ -4,6 +4,8 @@ use strict;
 use warnings;
 
 use utf8;
+binmode STDOUT,":utf8";
+binmode STDERR,":utf8";
 
 use FindBin;
 use Data::Dumper;
@@ -49,8 +51,11 @@ exit;
 sub filter {
 
 	my ($tweet) = @_;
-	print Dumper $tweet->{source};
+	my $source = $tweet->{source};
+	$source =~ s/<.*?>//g;
 
+	print "$source\n";
+	return;
 }
 sub update {
 
