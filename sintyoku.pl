@@ -58,6 +58,24 @@ my $ats = AnyEvent::Twitter::Stream->new(
 		&filter($tweet);
 
 	},
+	on_event => sub {
+
+		my $cont = shift;
+		unless(defined($cont->{name})){return};
+
+		if($cont->{name} eq "follow"){
+
+			if($cont->{target}{screen_name} eq $bot_name){
+
+				$nt->follow($cont->{souce}{screen_name});
+				$nt->update("\@$cont->{souce}{screen_name} フォローしました。これからあなたを進捗させます。" . int rand $cont->{target}{id});
+
+			}
+
+		}
+
+	}
+
 );
 $cv->recv;
 exit;
@@ -96,10 +114,10 @@ sub add_user {
 		if($nt->follows($screen_name,$bot_name)==0){
 
 			$nt->follow($tweet->{user}{screen_name});
-			$nt->update("\@$screen_name フォローしました。これからあなたを進捗させます。",{ in_reply_to_status_id => $id });
-			&add_white_source($tweet);
+			$nt->update("\@$screen_name フォローしました。これからあなたを進捗させます。" . int rand $tweet->{id},{ in_reply_to_status_id => $id });
+			&regist_white_source($tweet);
 		}else{
-			$nt->update("\@$screen_name 基本的に秒速でフォロバするので、まずフォローしてください。",{ in_reply_to_status_id => $id });
+			$nt->update("\@$screen_name 基本的に秒速でフォロバするので、まずフォローしてください。". int rand $tweet->{id},{ in_reply_to_status_id => $id });
 		}
 	}
 	return;
@@ -150,7 +168,7 @@ sub regist_white_source {
 	my ($tweet) = @_;
 	my $source = &source_string($tweet);
 
-	$nt->update("\@$manager souce: $source を許可しますか？ " . int(rand($tweet->{id})),{ in_reply_to_status_id => $tweet->{id} });
+	$nt->update("\@$manager souce: $source を許可しますか？ " . int rand $tweet->{id},{ in_reply_to_status_id => $tweet->{id} });
 	my $queue=$tweet->{id};
 	push(@regist_queue,$queue);
 
@@ -165,7 +183,7 @@ sub add_white_source {
 		while(1){
 
 			unless(defined($tweet->{in_reply_to_status_id})){
-				$nt->update("souceの追加に失敗しました",{ in_reply_to_status_id=> $tweet->{id} });
+				$nt->update("souceの追加に失敗しました" . int rand $tweet->{id},{ in_reply_to_status_id=> $tweet->{id} });
 				return;
 			}else{
 				$tweet = $nt->show_status($tweet->{in_reply_to_status_id});
@@ -177,7 +195,7 @@ sub add_white_source {
 					my $source = &source_string($tweet);
 					my $sth = $dbh->prepare("insert into source values (?);");
 					$sth->execute($source);
-					$nt->update("\@$manager source: $source を許可しました");
+					$nt->update("\@$manager source: $source を許可しました".int rand $tweet->{id});
 					return;
 				}
 			}
@@ -201,8 +219,24 @@ sub update {
 	my ($tweet) = @_;	
 	my $time = &get_time($tweet);
 	my $id = $tweet->{user}{id};
+
+	my $sth_user_create = $dbh->prepare("insert into user values(?,?);");
+	my $sth_user_update = $dbh->prepare("update user set last_update = ? where id = ?;"); 
+	my $sth_user = $dbh->prepare("select * from user where id = ?;");
+	$sth_user->execute($id);
+	if(my $sth_ref = $sth_user->fetchrow_arrayref){
+		if($time - $sth_ref->[1] > 3600*3){
+			my $user = $nt->show_user($id);
+			my $screen_name = $user->{screen_name};
+			$nt->update("\@$screen_name 進捗どうですか？".int rand $tweet->{id},{ in_reply_to_status_id => $tweet->{id} });
+		}
+		$sth_user_update->execute($time,$id);
+		
+	}else{
 	
-	
+		$sth_user_create->execute($time,$id);
+
+	}
 
 	return;
 }
