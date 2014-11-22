@@ -16,6 +16,8 @@ use Encode;
 use Net::Twitter;
 use AnyEvent::Twitter::Stream;
 
+use HTTP::Date;
+
 use DBI;
 our $dbh = DBI->connect("DBI:SQLite:dbname=sintyoku.db","","");
 &init_table;
@@ -49,6 +51,7 @@ my $ats = AnyEvent::Twitter::Stream->new(
 
 		my $tweet = shift;
 		unless(defined($tweet->{text})){return};
+		print "$tweet->{text}\n";
 		&add_user($tweet);
 		&request_white_source($tweet);
 		&add_white_source($tweet);
@@ -120,6 +123,17 @@ sub source_exists {
 	return $sth_ref->[0];
 
 }
+sub get_time {
+
+	my ($tweet) = @_;
+
+	my $created_at = $tweet->{created_at};
+	$created_at =~ s/\+0000//g;
+	my $epoch_second = str2time($created_at) + 3600*3;
+
+	return $epoch_second;
+
+}
 sub request_white_source {
 
 	my ($tweet) = @_;
@@ -175,17 +189,20 @@ sub add_white_source {
 sub filter {
 
 	my ($tweet) = @_;
-	my $source = $tweet->{source};
-	$source =~ s/<.*?>//g;
+	my $source = &source_string($tweet);
 
-	if(&source_exists){
+	if(&source_exists($source)){
 		&update($tweet);
 	}
 	return;
 }
 sub update {
 
-	my ($tweet) = @_;
+	my ($tweet) = @_;	
+	my $time = &get_time($tweet);
+	my $id = $tweet->{user}{id};
+	
+	
+
 	return;
 }
-
