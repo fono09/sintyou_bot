@@ -88,6 +88,7 @@ sub init_table {
 	if($sth_ref->[0] == 0){
 		$dbh->do("create table user(
 						id,
+						screen_name,
 						last_update
 		);");
 	}
@@ -129,6 +130,8 @@ sub get_time {
 	$created_at =~ s/\+0000//g;
 	my $epoch_second = str2time($created_at) + 3600*3;
 
+	print "\$epoch_second = $epoch_second\n";
+
 	return $epoch_second;
 
 }
@@ -138,7 +141,7 @@ sub request_white_source {
 	my $text = $tweet->{text};
 	if($text =~ /\@$bot_name/ && $text =~ /手動/){
 		my $source = &source_string($tweet);
-		&regist_white_source($tweet) if &source_exists==0;
+		&regist_white_source($tweet) if &source_exists($source)==0;
 	}
 	return;
 
@@ -174,10 +177,6 @@ sub add_white_source {
 				if($tweet->{in_reply_to_status_id} == $_){
 					$tweet = $nt->show_status($_);
 					my $source = &source_string($tweet);
-					if(&source_exists($source)){
-						splice(@regist_queue,$count,1);
-						return;
-					}
 					my $sth = $dbh->prepare("insert into source values (?);");
 					$sth->execute($source);
 					$nt->update("\@$manager source: $source を許可しました".int rand $tweet->{id});
@@ -204,24 +203,29 @@ sub filter {
 sub update {
 
 	my ($tweet) = @_;	
-	my $time = &get_time($tweet);
 	my $id = $tweet->{user}{id};
+	my $screen_name = $tweet->{user}{screen_name};
+	my $time = &get_time($tweet);
 
-	my $sth_user_create = $dbh->prepare("insert into user values(?,?);");
-	my $sth_user_update = $dbh->prepare("update user set last_update = ? where id = ?;"); 
-	my $sth_user = $dbh->prepare("select * from user where id = ?;");
+	my $sth_user_create = $dbh->prepare("insert into user values(?,?,?);");
+	my $sth_user_update = $dbh->prepare("update user set screen_name=?,last_update=? where id=?;"); 
+	my $sth_user = $dbh->prepare("select * from user where id=?;");
 	$sth_user->execute($id);
+
 	if(my $sth_ref = $sth_user->fetchrow_arrayref){
-		if($time - $sth_ref->[1] > 3600*3){
-			my $user = $nt->show_user($id);
-			my $screen_name = $user->{screen_name};
+
+		print "\$sth_ref : \n";
+		print Dumper $sth_ref;
+
+		if($time - $sth_ref->[2] > 3600*3){
+			my $screen_name = $sth_ref->[1]; 
 			$nt->update("\@$screen_name 進捗どうですか？".int rand $tweet->{id},{ in_reply_to_status_id => $tweet->{id} });
 		}
-		$sth_user_update->execute($time,$id);
+		$sth_user_update->execute($screen_name,$time);
 		
 	}else{
 	
-		$sth_user_create->execute($time,$id);
+		$sth_user_create->execute($id,$screen_name,$time);
 
 	}
 
