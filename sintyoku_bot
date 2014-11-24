@@ -17,7 +17,7 @@
 #Settings
 SERVICE='sintyoku.pl'
 OPTIONS=''
-BOTPATH='/home/fono/Github/sintyoku_bot'
+BOTPATH='/home/fono/Github/sintyou_bot'
 INVOCATION="./sintyoku.pl"
 
 sr_start() {

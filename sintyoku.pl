@@ -51,8 +51,7 @@ my $ats = AnyEvent::Twitter::Stream->new(
 
 		my $tweet = shift;
 		unless(defined($tweet->{text})){return};
-		print "$tweet->{text}\n";
-		&add_user($tweet);
+		print "\@$tweet->{user}{screen_name} $tweet->{text}\n";
 		&request_white_source($tweet);
 		&add_white_source($tweet);
 		&filter($tweet);
@@ -61,14 +60,14 @@ my $ats = AnyEvent::Twitter::Stream->new(
 	on_event => sub {
 
 		my $cont = shift;
-		unless(defined($cont->{name})){return};
+		unless(defined($cont->{event})){return};
 
-		if($cont->{name} eq "follow"){
+		if($cont->{event} eq "follow"){
 
 			if($cont->{target}{screen_name} eq $bot_name){
 
-				$nt->follow($cont->{souce}{screen_name});
-				$nt->update("\@$cont->{souce}{screen_name} フォローしました。これからあなたを進捗させます。" . int rand $cont->{target}{id});
+				$nt->create_friend($cont->{source}{screen_name});
+				$nt->update("\@$cont->{source}{screen_name} フォローしました。あなたを進捗させます いつもツイートするアプリで「手動」を含むリプライをください。そのアプリからの投稿を認識します。複数アプリからもOKです。");
 
 			}
 
@@ -103,25 +102,6 @@ sub init_table {
 	}
 
 	return;
-}
-sub add_user {
-
-	my ($tweet) = @_;
-	my $id = $tweet->{id};
-	my $text = $tweet->{text};
-	my $screen_name = $tweet->{user}{screen_name};
-	if($text =~ /\@$bot_name/ && $text =~ /(follow|フォロー|ふぉろー)/){
-		if($nt->follows($screen_name,$bot_name)==0){
-
-			$nt->follow($tweet->{user}{screen_name});
-			$nt->update("\@$screen_name フォローしました。これからあなたを進捗させます。" . int rand $tweet->{id},{ in_reply_to_status_id => $id });
-			&regist_white_source($tweet);
-		}else{
-			$nt->update("\@$screen_name 基本的に秒速でフォロバするので、まずフォローしてください。". int rand $tweet->{id},{ in_reply_to_status_id => $id });
-		}
-	}
-	return;
-
 }
 sub source_string {
 
@@ -168,7 +148,7 @@ sub regist_white_source {
 	my ($tweet) = @_;
 	my $source = &source_string($tweet);
 
-	$nt->update("\@$manager souce: $source を許可しますか？ " . int rand $tweet->{id},{ in_reply_to_status_id => $tweet->{id} });
+	$nt->update("\@$manager source: $source を許可しますか？ " . int rand $tweet->{id},{ in_reply_to_status_id => $tweet->{id} });
 	my $queue=$tweet->{id};
 	push(@regist_queue,$queue);
 
@@ -183,21 +163,28 @@ sub add_white_source {
 		while(1){
 
 			unless(defined($tweet->{in_reply_to_status_id})){
-				$nt->update("souceの追加に失敗しました" . int rand $tweet->{id},{ in_reply_to_status_id=> $tweet->{id} });
+				$nt->update("sourceの追加に失敗しました" . int rand $tweet->{id},{ in_reply_to_status_id=> $tweet->{id} });
 				return;
 			}else{
 				$tweet = $nt->show_status($tweet->{in_reply_to_status_id});
 			}
 				
+			my $count=0;
 			foreach(@regist_queue){
 				if($tweet->{in_reply_to_status_id} == $_){
 					$tweet = $nt->show_status($_);
 					my $source = &source_string($tweet);
+					if(&source_exists($source)){
+						splice(@regist_queue,$count,1);
+						return;
+					}
 					my $sth = $dbh->prepare("insert into source values (?);");
 					$sth->execute($source);
 					$nt->update("\@$manager source: $source を許可しました".int rand $tweet->{id});
+					splice(@regist_queue,$count,1);
 					return;
 				}
+				$count++;
 			}
 
 		}
