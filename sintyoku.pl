@@ -151,42 +151,30 @@ sub regist_white_source {
 	my ($tweet) = @_;
 	my $source = &source_string($tweet);
 
-	$nt->update("\@$manager source: $source を許可しますか？ " . int rand $tweet->{id},{ in_reply_to_status_id => $tweet->{id} });
-	my $queue=$tweet->{id};
-	push(@regist_queue,$queue);
+	$nt->update("\@$manager source: \n$source\n を許可しますか？ " . int rand $tweet->{id},{ in_reply_to_status_id => $tweet->{id} });
 
 	return;
-	
 }
 sub add_white_source {
 
 	my ($tweet) = @_;
 	my $text = $tweet->{text};
-	if($text =~ /\@$bot_name/ && $text =~ /許可します/){
-		while(1){
+	if($text =~ /\@$bot_name/ && $text =~ /許可/){
 
-			unless(defined($tweet->{in_reply_to_status_id})){
-				$nt->update("sourceの追加に失敗しました" . int rand $tweet->{id},{ in_reply_to_status_id=> $tweet->{id} });
-				return;
-			}else{
-				$tweet = $nt->show_status($tweet->{in_reply_to_status_id});
-			}
-				
-			my $count=0;
-			foreach(@regist_queue){
-				if($tweet->{in_reply_to_status_id} == $_){
-					$tweet = $nt->show_status($_);
-					my $source = &source_string($tweet);
-					my $sth = $dbh->prepare("insert into source values (?);");
-					$sth->execute($source);
-					$nt->update("\@$manager source: $source を許可しました".int rand $tweet->{id});
-					splice(@regist_queue,$count,1);
-					return;
-				}
-				$count++;
-			}
-
+		unless(defined($tweet->{in_reply_to_status_id})){
+			$nt->update("\@$manager sourceの追加に失敗しました" . int rand $tweet->{id},{ in_reply_to_status_id=> $tweet->{id} });
+			return;
+		}else{
+			$tweet = $nt->show_status($tweet->{in_reply_to_status_id});
 		}
+			
+		my @list = split(/\n/,$tweet->{text});
+		my $source = $list[1];
+		my $sth = $dbh->prepare("insert into source values (?);");
+		$sth->execute($source);
+		$nt->update("\@$manager source: $source を許可しました".int rand $tweet->{id});
+		return;
+
 	}
 	return;
 }
@@ -217,7 +205,7 @@ sub update {
 		print "\$sth_ref : \n";
 		print Dumper $sth_ref;
 
-		if($time - $sth_ref->[2] > 3600*3){
+		if($time - $sth_ref->[2] > 3600*1){
 			my $screen_name = $sth_ref->[1]; 
 			$nt->update("\@$screen_name 進捗どうですか？".int rand $tweet->{id},{ in_reply_to_status_id => $tweet->{id} });
 		}
