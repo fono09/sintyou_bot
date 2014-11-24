@@ -221,7 +221,7 @@ sub update {
 			my $screen_name = $sth_ref->[1]; 
 			$nt->update("\@$screen_name 進捗どうですか？".int rand $tweet->{id},{ in_reply_to_status_id => $tweet->{id} });
 		}
-		$sth_user_update->execute($screen_name,$time);
+		$sth_user_update->execute($screen_name,$time,$id);
 		
 	}else{
 	
