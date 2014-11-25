@@ -67,7 +67,7 @@ my $ats = AnyEvent::Twitter::Stream->new(
 			if($cont->{target}{screen_name} eq $bot_name){
 
 				$nt->create_friend($cont->{source}{screen_name});
-				$nt->update("\@$cont->{source}{screen_name} フォローしました。あなたを進捗させます いつもツイートするアプリで「手動」を含むリプライをください。そのアプリからの投稿を認識します。複数アプリからもOKです。");
+				$nt->update("\@$cont->{source}{screen_name} フォローしました。あなたを進捗させます。いつもツイートするアプリで「手動」を含むリプライをください。そのアプリからの投稿を認識します。複数アプリからもOKです。");
 
 			}
 
@@ -159,7 +159,7 @@ sub add_white_source {
 
 	my ($tweet) = @_;
 	my $text = $tweet->{text};
-	if($text =~ /\@$bot_name/ && $text =~ /許可/){
+	if($text =~ /\@$bot_name/ && $text =~ /許可/ && $text !~ /(R|Q)T/){
 
 		unless(defined($tweet->{in_reply_to_status_id})){
 			$nt->update("\@$manager sourceの追加に失敗しました" . int rand $tweet->{id},{ in_reply_to_status_id=> $tweet->{id} });
