@@ -7,6 +7,10 @@ use utf8;
 binmode STDOUT,":utf8";
 binmode STDERR,":utf8";
 
+$SIG{'QUIT'} = \&handler;
+$SIG{'KILL'} = \&handler;
+$SIG{'TERM'} = \&handler;
+
 use FindBin;
 chdir($FindBin::Bin);
 
@@ -159,7 +163,8 @@ sub add_white_source {
 
 	my ($tweet) = @_;
 	my $text = $tweet->{text};
-	if($text =~ /\@$bot_name/ && $text =~ /許可/ && $text !~ /(R|Q)T/){
+	my $screen_name = $tweet->{user}{screen_name};
+	if($text =~ /\@$bot_name/ && $text =~ /許可/ && $text !~ /(R|Q)T/ && $screen_name eq $manager){
 
 		unless(defined($tweet->{in_reply_to_status_id})){
 			$nt->update("\@$manager sourceの追加に失敗しました" . int rand $tweet->{id},{ in_reply_to_status_id=> $tweet->{id} });
@@ -218,4 +223,8 @@ sub update {
 	}
 
 	return;
+}
+sub handler {
+	$nt->update("\@$manager 進捗botは終了します".int rand 0xffff);
+	exit;
 }
