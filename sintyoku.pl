@@ -132,7 +132,7 @@ sub get_time {
 
 	my $created_at = $tweet->{created_at};
 	$created_at =~ s/\+0000//g;
-	my $epoch_second = str2time($created_at) + 3600*(6+int(rand(6));
+	my $epoch_second = str2time($created_at) + 3600*(6+int(rand(6)));
 
 	print "\$epoch_second = $epoch_second\n";
 
