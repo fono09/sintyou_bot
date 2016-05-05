@@ -18,7 +18,7 @@
 SERVICE='sintyoku.pl'
 OPTIONS=''
 BOTPATH='/home/fono/Github/sintyou_bot'
-INVOCATION="./sintyoku.pl"
+INVOCATION="carton exec ./sintyoku.pl"
 
 sr_start() {
   if pgrep -f $SERVICE > /dev/null

@@ -132,7 +132,7 @@ sub get_time {
 
 	my $created_at = $tweet->{created_at};
 	$created_at =~ s/\+0000//g;
-	my $epoch_second = str2time($created_at) + 3600*(6+int(rand(6)));
+	my $epoch_second = str2time($created_at) + 3600*9;
 
 	print "\$epoch_second = $epoch_second\n";
 
@@ -210,7 +210,7 @@ sub update {
 		print "\$sth_ref : \n";
 		print Dumper $sth_ref;
 
-		if($time - $sth_ref->[2] > 3600*1){
+		if($time - $sth_ref->[2] > 3600*(3+int(rand(3)))){
 			my $screen_name = $sth_ref->[1]; 
 			$nt->update("\@$screen_name 進捗どうですか？".int rand $tweet->{id},{ in_reply_to_status_id => $tweet->{id} });
 		}
